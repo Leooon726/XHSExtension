@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const activeTab = tabs[0];
                 if (activeTab) {
                     chrome.runtime.sendMessage({ tabId: activeTab.id });
-                    resultContainer.classList.remove('active');
+                    resultContainer.classList.add('active');
                     allArticlesContainer.classList.add('active');
                 }
             });
@@ -95,8 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.innerHTML = ''; 
         resultContainer.innerHTML += `<p>Number of high liked articles: ${highLikedCount}</p>`;
         resultContainer.innerHTML += `<p>Total number of articles: ${totalArticlesCount}</p>`;
-        console.log('High liked notes Length:', high_liked_note.length);
-        console.log('articlesData Length:', articlesData.length);
     }
 
     function displayResults(articlesData) {
