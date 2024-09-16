@@ -3,16 +3,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const showAllArticlesButton = document.getElementById('showAllArticlesButton');
     const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
     const showUserProfileButton = document.getElementById('showUserProfileButton');
+    const showLowFansHighLikesButton = document.getElementById('showLowFansHighLikesButton');
     const resultContainer = document.getElementById('resultContainer');
     const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
     const userProfileContainer = document.getElementById('user_profile');
+    const lowFansHighLikesContainer = document.getElementById('low_fans_high_likes');
 
     let authors = [];
     let likes = [];
     let titles = [];
     let userProfiles = [];
     let articleLinks = [];
+    let high_liked_note = []; // Declare high_liked_note in a broader scope
 
     if (button) {
         button.addEventListener('click', function() {
@@ -42,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.add('active');
         highLikedArticlesContainer.classList.remove('active');
         userProfileContainer.classList.remove('active');
+        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
     });
 
     showHighLikedArticlesButton.addEventListener('click', function() {
@@ -49,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.add('active');
         userProfileContainer.classList.remove('active');
+        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
         displayHighLikedArticles();
     });
 
@@ -57,7 +62,18 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.remove('active');
         userProfileContainer.classList.add('active');
+        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
         displayUserProfile();
+    });
+
+    showLowFansHighLikesButton.addEventListener('click', function() {
+        resultContainer.classList.remove('active');
+        allArticlesContainer.classList.remove('active');
+        highLikedArticlesContainer.classList.remove('active');
+        userProfileContainer.classList.remove('active');
+        lowFansHighLikesContainer.classList.add('active'); // Show lowFansHighLikesContainer
+        lowFansHighLikesContainer.style.display = 'block'; // Ensure it's displayed
+        displayLowFansHighLikes();
     });
 
     function displayResults(authorsData, likesData, titlesData, userProfilesData, articleLinksData) {
@@ -99,6 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
                 const articleLink = articleLinks[index] || 'Not found';
 
+                // Store the filtered result in the high_liked_note list
+                high_liked_note.push({
+                    title: title,
+                    author: author,
+                    likes: likeCount,
+                    profile: userProfile,
+                    article: articleLink
+                });
+
                 highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
             }
         });
@@ -132,6 +157,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         } else {
             userProfileContainer.innerHTML = '<p>No user profiles available.</p>';
+        }
+    }
+
+    function displayLowFansHighLikes() {
+        lowFansHighLikesContainer.innerHTML = ''; // Clear previous results
+        const fansThreshold = 1000; // Set the threshold for fans count
+
+        if (high_liked_note.length > 0) {
+            high_liked_note.forEach(note => {
+                const { title, author, likes, profile, article } = note; // Destructure the note object
+
+                // Fetch the user profile to get the fans count
+                fetch(profile)
+                    .then(response => response.text())
+                    .then(data => {
+                        const fansCount = extractFansCount(data); // Extract fans count from the profile data
+
+                        // Check if fansCount is below the threshold
+                        if (fansCount && fansCount.some(count => parseInt(count) < fansThreshold)) {
+                            // Display the information for each user profile
+                            lowFansHighLikesContainer.innerHTML += `
+                                <div>
+                                    <h3>Author: ${author}</h3>
+                                    <p>Article Title: ${title}</p>
+                                    <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
+                                    <p>Article Link: <a href="${article}" target="_blank">${article}</a></p>
+                                    <p>Likes: ${likes}</p>
+                                    <p>Fans: ${fansCount ? fansCount.join(', ') : 'Not found'}</p>
+                                </div>
+                                <hr>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user profile for fans count:', error);
+                    });
+            });
+        } else {
+            lowFansHighLikesContainer.innerHTML = '<p>No user profiles available.</p>';
         }
     }
 
