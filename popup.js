@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const highLikesLowFansButton = document.getElementById('highlikeslowfans');
     const maxFansInput = document.getElementById('maxFansInput');
     const likeThresholdInput = document.getElementById('likeThresholdInput');
+    const historicalResultButton = document.getElementById('historicalResultButton');
 
     let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
@@ -75,6 +76,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    if (historicalResultButton) {
+        historicalResultButton.addEventListener('click', function() {
+            // Hide all other containers
+            resultContainer.classList.remove('active');
+            allArticlesContainer.classList.remove('active');
+            highLikedArticlesContainer.classList.remove('active');
+            extractFansCountContainer.classList.remove('active');
+            highLikesLowFansArticlesContainer.classList.remove('active');
+
+            // Show the historical results container
+            const historicalResultsContainer = document.getElementById('historicalResultsContainer');
+            historicalResultsContainer.classList.add('active'); // Set active status
+
+            // Fetch and display sorted articles
+            chrome.storage.local.get('sortedArticles', function(data) {
+                const sortedArticles = data.sortedArticles || [];
+                historicalResultsContainer.innerHTML = ''; // Clear previous results
+
+                if (sortedArticles.length > 0) {
+                    sortedArticles.forEach(article => {
+                        const { author, likes, title, profile, articleLink, fans } = article;
+                        const likeCount = likes || 'Not found'; // Ensure likeCount is defined
+                        historicalResultsContainer.innerHTML += `
+                            <p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>
+                        `;
+                    });
+                } else {
+                    historicalResultsContainer.innerHTML = '<p>No historical results found.</p>';
+                }
+            });
+        });
+    }
+
     function filterHighLikedArticlesAndShowNumbers(articlesData) {
         const likeThreshold = parseInt(likeThresholdInput.value) || 10000; // Default to 10000 if input is invalid
 
@@ -132,6 +166,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Sort articles based on fans count
         const sortedArticles = high_liked_note.sort((a, b) => (a.fans || 0) - (b.fans || 0));
+
+        // Store sorted articles in storage
+        chrome.storage.local.set({ sortedArticles: sortedArticles }, function() {
+            console.log('Sorted articles stored in storage');
+        });
 
         sortedArticles.forEach(article => {
             const { author, likes, title, profile, articleLink, fans } = article;
