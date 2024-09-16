@@ -7,8 +7,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultContainer = document.getElementById('resultContainer');
     const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
+    const highLikesLowFansArticlesContainer = document.getElementById('high_likes_low_fans');
     const userProfileContainer = document.getElementById('user_profile');
     const extractFansCountContainer = document.getElementById('extract_fans_count');
+    const highLikesLowFansButton = document.getElementById('highlikeslowfans');
+    const maxFansInput = document.getElementById('maxFansInput');
 
     let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
@@ -73,6 +76,18 @@ document.addEventListener('DOMContentLoaded', function() {
         displayExtractFansCount();
     });
 
+    if (highLikesLowFansButton) {
+        highLikesLowFansButton.addEventListener('click', function() {
+            resultContainer.classList.remove('active');
+            allArticlesContainer.classList.remove('active');
+            highLikedArticlesContainer.classList.remove('active');
+            userProfileContainer.classList.remove('active');
+            extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
+            highLikesLowFansArticlesContainer.classList.add('active'); // Show the high likes low fans container
+            displayHighLikesLowFansArticles(); // Call the function to display high liked articles
+        });
+    }
+
     function filterHighLikedArticlesAndShowNumbers(articlesData) {
         const likeThreshold = 10000;
 
@@ -116,10 +131,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function displayHighLikesLowFansArticles() {
+        highLikesLowFansArticlesContainer.innerHTML = '';
+        let foundArticles = false;
+
+        // Get the max_fans value from the input
+        const maxFans = parseInt(maxFansInput.value) || Infinity; // Default to Infinity if not a number
+
+        // Show the total number of high_liked_note in highLikesLowFansArticlesContainer.
+        const totalHighLikedCount = high_liked_note.length;
+        highLikesLowFansArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
+
+        high_liked_note.forEach(article => {
+            const { author, likes, title, profile, articleLink, fans } = article;
+            const likeCount = likes || 'Not found'; // Ensure likeCount is defined
+
+            // Filter articles based on max_fans
+            if (likeCount > 0 && (article.fans < maxFans || !article.fans)) { // Check if fans are less than maxFans
+                foundArticles = true; // Set foundArticles to true if at least one article is found
+                highLikesLowFansArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>`;
+            }
+        });
+
+        if (!foundArticles) {
+            highLikesLowFansArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
+        }
+    }
+
     function displayHighLikedArticles() {
         highLikedArticlesContainer.innerHTML = '';
         let foundArticles = false;
-
         // Show the total number of high_liked_note in highLikedArticlesContainer.
         const totalHighLikedCount = high_liked_note.length;
         highLikedArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
@@ -130,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (likeCount > 0) { // Check if there are likes to display
                 foundArticles = true; // Set foundArticles to true if at least one article is found
-                highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${profile}" target="_blank">${profile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
+                highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${profile}" target="_blank">profile</a>, Article: <a href="${articleLink}" target="_blank">article</a></p>`;
             }
         });
 
@@ -168,8 +209,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayExtractFansCount() {
         extractFansCountContainer.innerHTML = ''; // Clear previous results
+        const progressBar = document.getElementById('progress'); // Get the progress bar element
+        const totalNotes = high_liked_note.length; // Total number of notes
 
-        if (high_liked_note.length > 0) {
+        if (totalNotes > 0) {
             high_liked_note.forEach((note, index) => {
                 const { title, author, likes, profile, articleLink } = note; // Destructure the note object
                 console.log('article', articleLink);
@@ -182,6 +225,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             // Update high_liked_note with the extracted fans count
                             note.fans = fansCount ? fansCount.join(', ') : 'Not found';
+
+                            // Update progress bar
+                            const progressPercentage = ((index + 1) / totalNotes) * 100; // Calculate progress percentage
+                            progressBar.style.width = progressPercentage + '%'; // Update progress bar width
 
                             // Display the information for each user profile
                             extractFansCountContainer.innerHTML += `

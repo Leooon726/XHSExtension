@@ -25,12 +25,19 @@
     <button id="showHighLikedArticlesButton">Show High Liked Articles</button>
     <button id="showUserProfileButton">Show User Profile</button>
     <button id="showExtractFansCountButton">Extract Fans Count</button>
+    <button id="highlikeslowfans">Show High Likes, Low Fans</button>
+    <input type="number" id="maxFansInput" placeholder="Enter max fans" min="0" value="1000" />
+    <!-- Add this HTML for the progress bar -->
+    <div class="progress-bar" style="width: 100%; background-color: #f0f0f0; height: 20px; margin-bottom: 10px;">
+        <div id="progress" class="progress" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
+    </div>
     <div id="tabs">
         <div id="resultContainer" class="tab active"></div>
         <div id="all_articles" class="tab"></div>
         <div id="high_liked_articles" class="tab"></div>
         <div id="user_profile" class="tab"></div>
         <div id="extract_fans_count" class="tab"></div>
+        <div id="high_likes_low_fans" class="tab"></div>
     </div>
 </body>
 </html>
