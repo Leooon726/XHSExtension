@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const extractFansCountContainer = document.getElementById('extract_fans_count');
     const highLikesLowFansButton = document.getElementById('highlikeslowfans');
     const maxFansInput = document.getElementById('maxFansInput');
+    const likeThresholdInput = document.getElementById('likeThresholdInput');
 
     let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
@@ -75,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function filterHighLikedArticlesAndShowNumbers(articlesData) {
-        const likeThreshold = 10000;
+        const likeThreshold = parseInt(likeThresholdInput.value) || 10000; // Default to 10000 if input is invalid
 
         articlesData.forEach(article => {
             const { likes } = article;
@@ -249,32 +250,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const automateButton = document.getElementById('automateButton');
     const scrollTimesInput = document.getElementById('scrollTimesInput');
+    let isAutomating = false; // Flag to track automation state
+    let automateInterval; // Variable to hold the interval
 
     if (automateButton) {
         automateButton.addEventListener('click', function() {
-            console.log('Automate button clicked'); // Log when the button is clicked
-            
-            const scrollTimes = parseInt(scrollTimesInput.value) || 10; // Default to 10 if input is invalid
+            if (isAutomating) {
+                // Stop automation
+                clearInterval(automateInterval);
+                automateButton.textContent = 'Automate'; // Change button text back
+                isAutomating = false; // Update the flag
+                console.log('Automation stopped'); // Log when automation is stopped
+            } else {
+                // Start automation
+                console.log('Automate button clicked'); // Log when the button is clicked
+                const scrollTimes = parseInt(scrollTimesInput.value) || 10; // Default to 10 if input is invalid
+                let currentIteration = 0; // Track the current iteration
 
-            const automate = async () => {
-                for (let i = 0; i < scrollTimes; i++) { // Use scrollTimes from input
-                    console.log(`Iteration ${i + 1}`); // Log the current iteration
-                    
-                    // Simulate click on the get content button
-                    button.click();
-                    
-                    // Wait for content to load
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Adjust the timeout as needed
-                    
-                    // Simulate click on the scroll down button
-                    scrollDownButton.click();
-                    
-                    // Wait for scrolling to complete
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Adjust the timeout as needed
-                }
-            };
+                automateInterval = setInterval(async () => {
+                    if (currentIteration < scrollTimes) {
+                        console.log(`Iteration ${currentIteration + 1}`); // Log the current iteration
+                        button.click(); // Simulate click on the get content button
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for content to load
+                        scrollDownButton.click(); // Simulate click on the scroll down button
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for scrolling to complete
+                        currentIteration++; // Increment the iteration count
+                    } else {
+                        clearInterval(automateInterval); // Stop the interval when done
+                        automateButton.textContent = 'Automate'; // Change button text back
+                        isAutomating = false; // Update the flag
+                    }
+                }, 4000); // Set interval to 4 seconds (2 seconds for loading + 2 seconds for scrolling)
 
-            automate();
+                automateButton.textContent = 'Stop'; // Change button text to "Stop"
+                isAutomating = true; // Update the flag
+            }
         });
     }
 });
