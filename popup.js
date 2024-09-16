@@ -2,9 +2,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('getContentButton');
     const showAllArticlesButton = document.getElementById('showAllArticlesButton');
     const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
+    const showUserProfileButton = document.getElementById('showUserProfileButton');
     const resultContainer = document.getElementById('resultContainer');
     const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
+    const userProfileContainer = document.getElementById('user_profile');
 
     let authors = [];
     let likes = [];
@@ -39,24 +41,34 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.add('active');
         highLikedArticlesContainer.classList.remove('active');
+        userProfileContainer.classList.remove('active');
     });
 
     showHighLikedArticlesButton.addEventListener('click', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.add('active');
+        userProfileContainer.classList.remove('active');
         displayHighLikedArticles();
     });
 
-    function displayResults(authorsData, likesData, titlesData, userProfilesData, articleLinksData) {
-        resultContainer.innerHTML = ''; // Clear previous results
-        allArticlesContainer.innerHTML = ''; // Clear previous results in all_articles tab
+    showUserProfileButton.addEventListener('click', function() {
+        resultContainer.classList.remove('active');
+        allArticlesContainer.classList.remove('active');
+        highLikedArticlesContainer.classList.remove('active');
+        userProfileContainer.classList.add('active');
+        displayUserProfile();
+    });
 
-        authors = authorsData; // Assign to global variable
-        likes = likesData; // Assign to global variable
-        titles = titlesData; // Assign to global variable
-        userProfiles = userProfilesData; // Assign to global variable
-        articleLinks = articleLinksData; // Assign to global variable
+    function displayResults(authorsData, likesData, titlesData, userProfilesData, articleLinksData) {
+        resultContainer.innerHTML = '';
+        allArticlesContainer.innerHTML = '';
+
+        authors = authorsData;
+        likes = likesData;
+        titles = titlesData;
+        userProfiles = userProfilesData;
+        articleLinks = articleLinksData;
 
         authors.forEach((author, index) => {
             const likeCount = likes[index] || 'Not found';
@@ -64,10 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
             const articleLink = articleLinks[index] || 'Not found';
 
-            // Display in resultContainer
             resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
-
-            // Populate all_articles tab
             allArticlesContainer.innerHTML += `<p>Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
         });
 
@@ -78,15 +87,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayHighLikedArticles() {
-        highLikedArticlesContainer.innerHTML = ''; // Clear previous results
+        highLikedArticlesContainer.innerHTML = '';
         const likeThreshold = 10000;
-        let foundArticles = false; // Flag to check if any articles are found
+        let foundArticles = false;
 
         authors.forEach((author, index) => {
-            const likeCount = likes[index] || 0; // Default to 0 if not found
-            console.log(`Checking author: ${author}, Likes: ${likeCount}`); // Log author and like count
+            const likeCount = likes[index] || 0;
             if (likeCount > likeThreshold) {
-                foundArticles = true; // Set flag to true if an article is found
+                foundArticles = true;
                 const title = titles[index] || 'Not found';
                 const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
                 const articleLink = articleLinks[index] || 'Not found';
@@ -97,10 +105,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!foundArticles) {
             highLikedArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
-            console.log('No high liked articles found.'); // Log when no articles are found
-        } else {
-            console.log('High liked articles displayed successfully.'); // Log when articles are displayed
         }
+    }
+
+    function displayUserProfile() {
+        userProfileContainer.innerHTML = ''; // Clear previous results
+        if (userProfiles.length > 0) {
+            const firstUserProfile = userProfiles[0]; // Get the first user profile link
+            fetch(`https://www.xiaohongshu.com${firstUserProfile}`)
+                .then(response => response.text())
+                .then(data => {
+                    const fansNearbyContents = extractFansCount(data); // Get all nearby content around "fans"
+                    userProfileContainer.innerHTML = `<h2>User Profile Content</h2>`;
+                    if (fansNearbyContents) {
+                        fansNearbyContents.forEach(content => {
+                            userProfileContainer.innerHTML += `<p>Nearby content around "fans": ${escapeHTML(content)}</p>`;
+                        });
+                    } else {
+                        userProfileContainer.innerHTML += `<p>Fans information is not found.</p>`;
+                    }
+                    userProfileContainer.innerHTML += `<div>${escapeHTML(data)}</div>`;
+                })
+                .catch(error => {
+                    userProfileContainer.innerHTML = '<p>Error fetching user profile content.</p>';
+                    console.error('Error fetching user profile:', error);
+                });
+        } else {
+            userProfileContainer.innerHTML = '<p>No user profiles available.</p>';
+        }
+    }
+
+    function extractFansCount(content) {
+        const fansCountMatches = [];
+        const regex = /{[^}]*"type":\s*"fans"[^}]*"count":\s*"(\d+)"[^}]*}|{[^}]*"count":\s*"(\d+)"[^}]*"type":\s*"fans"[^}]*}/g; // Match the dict with "type" as "fans" and capture the count in either order
+        let match;
+
+        while ((match = regex.exec(content)) !== null) {
+            // Check which capturing group matched and push the count
+            const count = match[1] || match[2]; // Get the count from the appropriate group
+            fansCountMatches.push(count); // Push the captured count to the array
+        }
+
+        return fansCountMatches.length > 0 ? fansCountMatches : null; // Return all counts or null if none found
     }
 });
 
