@@ -10,11 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const userProfileContainer = document.getElementById('user_profile');
     const lowFansHighLikesContainer = document.getElementById('low_fans_high_likes');
 
-    let authors = [];
-    let likes = [];
-    let titles = [];
-    let userProfiles = [];
-    let articleLinks = [];
+    let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
 
     if (button) {
@@ -35,8 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if (request.content) {
             console.log('Full HTML content retrieved');
-            ({ authors, likes, titles, userProfiles, articleLinks } = parseContent(request.content));
-            displayResults(authors, likes, titles, userProfiles, articleLinks);
+            articlesData = parseContent(request.content);
+            displayResults(articlesData);
         }
     });
 
@@ -76,27 +72,20 @@ document.addEventListener('DOMContentLoaded', function() {
         displayLowFansHighLikes();
     });
 
-    function displayResults(authorsData, likesData, titlesData, userProfilesData, articleLinksData) {
+    function displayResults(articlesData) {
         resultContainer.innerHTML = '';
         allArticlesContainer.innerHTML = '';
 
-        authors = authorsData;
-        likes = likesData;
-        titles = titlesData;
-        userProfiles = userProfilesData;
-        articleLinks = articleLinksData;
-
-        authors.forEach((author, index) => {
-            const likeCount = likes[index] || 'Not found';
-            const title = titles[index] || 'Not found';
-            const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
-            const articleLink = articleLinks[index] || 'Not found';
+        articlesData.forEach(article => {
+            const { author, likes, title, profile, articleLink } = article;
+            const likeCount = likes || 'Not found';
+            const userProfile = profile ? `https://www.xiaohongshu.com${profile}` : 'Not found';
 
             resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
             allArticlesContainer.innerHTML += `<p>Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
         });
 
-        if (authors.length === 0) {
+        if (articlesData.length === 0) {
             resultContainer.innerHTML += '<p>No authors found.</p>';
             allArticlesContainer.innerHTML += '<p>No authors found.</p>';
         }
@@ -107,13 +96,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const likeThreshold = 10000;
         let foundArticles = false;
 
-        authors.forEach((author, index) => {
-            const likeCount = likes[index] || 0;
+        articlesData.forEach(article => {
+            const { author, likes, title, profile, articleLink } = article;
+            console.log(article);
+            const likeCount = likes || 0;
             if (likeCount > likeThreshold) {
                 foundArticles = true;
-                const title = titles[index] || 'Not found';
-                const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
-                const articleLink = articleLinks[index] || 'Not found';
+                const userProfile = profile ? `https://www.xiaohongshu.com${profile}` : 'Not found';
 
                 // Store the filtered result in the high_liked_note list
                 high_liked_note.push({
@@ -135,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayUserProfile() {
         userProfileContainer.innerHTML = ''; // Clear previous results
-        if (userProfiles.length > 0) {
-            const firstUserProfile = userProfiles[0]; // Get the first user profile link
+        if (articlesData.length > 0) {
+            const firstUserProfile = articlesData[0].profile; // Get the first user profile link
             fetch(`https://www.xiaohongshu.com${firstUserProfile}`)
                 .then(response => response.text())
                 .then(data => {
@@ -217,47 +206,33 @@ document.addEventListener('DOMContentLoaded', function() {
 function parseContent(content) {
     const noteItems = content.split(/class="note-item"/); // Split by note item
         
-    const authors = [];
-    const likes = [];
-    const titles = [];
-    const userProfiles = [];
-    const articleLinks = []; // New array to store article links
+    const articlesData = []; // New array to store articles data
         
     noteItems.forEach((note, index) => {
-        // console.log(`Parsing Note item ${index}:`, note); // Log the original note item for comparison
         const authorMatch = /class="name">([^<]+)<\/span>/.exec(note);
         const likeCountMatch = /class="count" selected-disabled-search="">([\d.]+[^\d<]*)<\/span>/.exec(note);
         const titleMatch = /class="title"><span[^>]*>([^<]+)<\/span>/.exec(note);
         const userProfileMatch = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/.exec(note);
         const articleLinkMatch = /<a data-v-3e97982a="" href="(\/explore\/[^"]+)"/.exec(note); // Match for article link starting with /explore
             
-        if (authorMatch) {
-            authors.push(authorMatch[1].trim());
-            // console.log('Author:', authorMatch[1].trim());
-        }
-        if (likeCountMatch) {
-            let likeCount = likeCountMatch[1].trim();
-            // Check for Chinese characters in the like count
-            if (/[\u4e00-\u9fa5]/.test(likeCount)) {
-                likeCount = parseFloat(likeCount) * 10000; // Multiply by 10000 if Chinese characters are present
-            }
-            likes.push(likeCount);
-            // console.log('Likes:', likeCount);
-        }
-        if (titleMatch) {
-            titles.push(titleMatch[1].trim());
-            // console.log('Title:', titleMatch[1].trim());
-        }
-        if (userProfileMatch) {
-            userProfiles.push(userProfileMatch[1].trim());
-            // console.log('User Profile:', userProfileMatch[1].trim());
-        }
-        if (articleLinkMatch) { // Check for article link match
-            articleLinks.push(`https://www.xiaohongshu.com${articleLinkMatch[1]}`); // Prepend base URL to article link
-            // console.log('Article Link:', `https://www.xiaohongshu.com${articleLinkMatch[1]}`);
-        }
+        const articleData = {
+            author: authorMatch ? authorMatch[1].trim() : 'Not found',
+            likes: likeCountMatch ? (function() {
+                let likeCount = likeCountMatch[1].trim();
+                // Check for Chinese characters in the like count
+                if (/[\u4e00-\u9fa5]/.test(likeCount)) {
+                    likeCount = parseFloat(likeCount) * 10000; // Multiply by 10000 if Chinese characters are present
+                }
+                return likeCount;
+            })() : 'Not found',
+            title: titleMatch ? titleMatch[1].trim() : 'Not found',
+            profile: userProfileMatch ? userProfileMatch[1].trim() : null,
+            articleLink: articleLinkMatch ? `https://www.xiaohongshu.com${articleLinkMatch[1]}` : 'Not found'
+        };
+
+        articlesData.push(articleData);
     });
-    return { authors, likes, titles, userProfiles, articleLinks }; // Return articleLinks as well
+    return articlesData; // Return articles data as a list of dicts
 }
 
 function escapeHTML(str) {
