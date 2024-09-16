@@ -80,7 +80,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const { likes } = article;
             const likeCount = likes || 0;
             if (likeCount > likeThreshold) {
-                high_liked_note.push(article);
+                // Only push the article if it's not already in high_liked_note
+                if (!high_liked_note.some(existingArticle => existingArticle.title === article.title)) {
+                    high_liked_note.push(article);
+                }
             }
         });
 
