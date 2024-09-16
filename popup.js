@@ -124,12 +124,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get the max_fans value from the input
         const maxFans = parseInt(maxFansInput.value) || Infinity; // Default to Infinity if not a number
+        const likeThreshold = parseInt(likeThresholdInput.value) || 10000; // Get the like threshold
 
         // Show the total number of high_liked_note in highLikesLowFansArticlesContainer.
         const totalHighLikedCount = high_liked_note.length;
         highLikesLowFansArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
 
-        high_liked_note.forEach(article => {
+        // Sort articles based on fans count
+        const sortedArticles = high_liked_note.sort((a, b) => (a.fans || 0) - (b.fans || 0));
+
+        sortedArticles.forEach(article => {
             const { author, likes, title, profile, articleLink, fans } = article;
             const likeCount = likes || 'Not found'; // Ensure likeCount is defined
 
@@ -137,6 +141,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (likeCount > 0 && (article.fans < maxFans || !article.fans)) { // Check if fans are less than maxFans
                 foundArticles = true; // Set foundArticles to true if at least one article is found
                 highLikesLowFansArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>`;
+            }
+        });
+
+        // Add a separator for articles with fans greater than the threshold
+        highLikesLowFansArticlesContainer.innerHTML += '<hr>'; // Separator line
+
+        sortedArticles.forEach(article => {
+            const { author, likes, title, profile, articleLink, fans } = article;
+
+            // Display articles with fans greater than the threshold
+            if (fans > likeThreshold) {
+                highLikesLowFansArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likes || 'Not found'}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>`;
             }
         });
 
