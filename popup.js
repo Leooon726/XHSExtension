@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (request.content) {
             console.log('Full HTML content retrieved');
 
-            // Parse the content to find all author names, titles, likes, and user profile links
-            const { authors, likes, titles, userProfiles } = parseContent(request.content);
+            // Parse the content to find all author names, titles, likes, user profile links, and article links
+            const { authors, likes, titles, userProfiles, articleLinks } = parseContent(request.content);
 
             // Display parsed results
             resultContainer.innerHTML = ''; // Clear previous results
@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const likeCount = likes[index] || 'Not found'; // Handle case where likes may not match authors
                 const title = titles[index] || 'Not found'; // Handle case where titles may not match authors
                 const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found'; // Prepend base URL to user profile
-                resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a></p>`;
+                const articleLink = articleLinks[index] || 'Not found'; // Handle case where article links may not match authors
+                resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
             });
 
             if (authors.length === 0) {
@@ -76,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const likes = [];
         const titles = [];
         const userProfiles = [];
+        const articleLinks = []; // New array to store article links
         
         noteItems.forEach((note, index) => {
             console.log(`Parsing Note item ${index}:`, note); // Log the original note item for comparison
@@ -83,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const likeCountMatch = /class="count" selected-disabled-search="">([\d.]+[^\d<]*)<\/span>/.exec(note);
             const titleMatch = /class="title"><span[^>]*>([^<]+)<\/span>/.exec(note);
             const userProfileMatch = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/.exec(note);
+            const articleLinkMatch = /<a data-v-3e97982a="" href="(\/explore\/[^"]+)"/.exec(note); // Match for article link starting with /explore
             
             if (authorMatch) {
                 authors.push(authorMatch[1].trim());
@@ -105,9 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 userProfiles.push(userProfileMatch[1].trim());
                 console.log('User Profile:', userProfileMatch[1].trim());
             }
+            if (articleLinkMatch) { // Check for article link match
+                articleLinks.push(`https://www.xiaohongshu.com${articleLinkMatch[1]}`); // Prepend base URL to article link
+                console.log('Article Link:', `https://www.xiaohongshu.com${articleLinkMatch[1]}`);
+            }
         });
-        
-        return { authors, likes, titles, userProfiles };
+        return { authors, likes, titles, userProfiles, articleLinks }; // Return articleLinks as well
     }
 
     function escapeHTML(str) {
