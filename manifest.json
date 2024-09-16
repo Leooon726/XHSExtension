@@ -3,7 +3,7 @@
     "name": "My Extension",
     "version": "1.0",
     "description": "A simple browser extension to get current tab content.",
-    "permissions": ["activeTab", "scripting", "downloads"],
+    "permissions": ["activeTab", "scripting", "downloads", "storage"], // Add "storage" here
     "host_permissions": [
         "https://*/*",
         "http://*/*"

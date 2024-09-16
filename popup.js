@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const showAllArticlesButton = document.getElementById('showAllArticlesButton');
     const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
     const showUserProfileButton = document.getElementById('showUserProfileButton');
-    const showLowFansHighLikesButton = document.getElementById('showLowFansHighLikesButton');
+    const showExtractFansCountButton = document.getElementById('showExtractFansCountButton');
     const resultContainer = document.getElementById('resultContainer');
     const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
     const userProfileContainer = document.getElementById('user_profile');
-    const lowFansHighLikesContainer = document.getElementById('low_fans_high_likes');
+    const extractFansCountContainer = document.getElementById('extract_fans_count');
 
     let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.add('active');
         highLikedArticlesContainer.classList.remove('active');
         userProfileContainer.classList.remove('active');
-        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
+        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
     });
 
     showHighLikedArticlesButton.addEventListener('click', function() {
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.add('active');
         userProfileContainer.classList.remove('active');
-        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
+        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
         displayHighLikedArticles();
     });
 
@@ -58,18 +58,18 @@ document.addEventListener('DOMContentLoaded', function() {
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.remove('active');
         userProfileContainer.classList.add('active');
-        lowFansHighLikesContainer.style.display = 'none'; // Hide lowFansHighLikesContainer
+        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
         displayUserProfile();
     });
 
-    showLowFansHighLikesButton.addEventListener('click', function() {
+    showExtractFansCountButton.addEventListener('click', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.remove('active');
         userProfileContainer.classList.remove('active');
-        lowFansHighLikesContainer.classList.add('active'); // Show lowFansHighLikesContainer
-        lowFansHighLikesContainer.style.display = 'block'; // Ensure it's displayed
-        displayLowFansHighLikes();
+        extractFansCountContainer.classList.add('active'); // Show extractFansCountContainer
+        extractFansCountContainer.style.display = 'block'; // Ensure it's displayed
+        displayExtractFansCount();
     });
 
     function displayResults(articlesData) {
@@ -117,6 +117,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Store high_liked_note into storage
+        chrome.storage.local.set({ high_liked_note: high_liked_note }, function() {
+            console.log('High liked notes. Length:', high_liked_note.length);
+            // Print the stored data
+            chrome.storage.local.get('high_liked_note', function(data) {
+                console.log('Stored high liked notes:', data.high_liked_note);
+            });
+        });
+
         if (!foundArticles) {
             highLikedArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
         }
@@ -149,42 +158,43 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function displayLowFansHighLikes() {
-        lowFansHighLikesContainer.innerHTML = ''; // Clear previous results
-        const fansThreshold = 1000; // Set the threshold for fans count
+    function displayExtractFansCount() {
+        extractFansCountContainer.innerHTML = ''; // Clear previous results
 
         if (high_liked_note.length > 0) {
-            high_liked_note.forEach(note => {
+            high_liked_note.forEach((note, index) => {
                 const { title, author, likes, profile, article } = note; // Destructure the note object
 
-                // Fetch the user profile to get the fans count
-                fetch(profile)
-                    .then(response => response.text())
-                    .then(data => {
-                        const fansCount = extractFansCount(data); // Extract fans count from the profile data
+                // Fetch the user profile to get the fans count every 10 seconds
+                setTimeout(() => {
+                    fetch(profile)
+                        .then(response => response.text())
+                        .then(data => {
+                            const fansCount = extractFansCount(data); // Extract fans count from the profile data
 
-                        // Check if fansCount is below the threshold
-                        if (fansCount && fansCount.some(count => parseInt(count) < fansThreshold)) {
+                            // Update high_liked_note with the extracted fans count
+                            note.fans = fansCount ? fansCount.join(', ') : 'Not found';
+
                             // Display the information for each user profile
-                            lowFansHighLikesContainer.innerHTML += `
+                            extractFansCountContainer.innerHTML += `
                                 <div>
                                     <h3>Author: ${author}</h3>
                                     <p>Article Title: ${title}</p>
                                     <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
                                     <p>Article Link: <a href="${article}" target="_blank">${article}</a></p>
                                     <p>Likes: ${likes}</p>
-                                    <p>Fans: ${fansCount ? fansCount.join(', ') : 'Not found'}</p>
+                                    <p>Fans: ${note.fans}</p>
                                 </div>
                                 <hr>
                             `;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching user profile for fans count:', error);
-                    });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching user profile for fans count:', error);
+                        });
+                }, index * 10000); // Delay each fetch by 10 seconds multiplied by the index
             });
         } else {
-            lowFansHighLikesContainer.innerHTML = '<p>No user profiles available.</p>';
+            extractFansCountContainer.innerHTML = '<p>No user profiles available.</p>';
         }
     }
 
