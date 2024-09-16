@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('getContentButton');
-    const showAllArticlesButton = document.getElementById('showAllArticlesButton');
     const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
     const showExtractFansCountButton = document.getElementById('showExtractFansCountButton');
     const resultContainer = document.getElementById('resultContainer');
-    const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
     const highLikesLowFansArticlesContainer = document.getElementById('high_likes_low_fans');
     const extractFansCountContainer = document.getElementById('extract_fans_count');
@@ -23,8 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const activeTab = tabs[0];
                 if (activeTab) {
                     chrome.runtime.sendMessage({ tabId: activeTab.id });
-                    resultContainer.classList.add('active');
-                    allArticlesContainer.classList.add('active');
+                    activateContainer(resultContainer);
                 }
             });
         });
@@ -37,57 +34,31 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Full HTML content retrieved');
             articlesData = parseContent(request.content);
             filterHighLikedArticlesAndShowNumbers(articlesData);
-            // displayResults(articlesData);
         }
     });
 
-    showAllArticlesButton.addEventListener('click', function() {
-        resultContainer.classList.remove('active');
-        allArticlesContainer.classList.add('active');
-        highLikedArticlesContainer.classList.remove('active');
-        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
-    });
-
     showHighLikedArticlesButton.addEventListener('click', function() {
-        resultContainer.classList.remove('active');
-        allArticlesContainer.classList.remove('active');
-        highLikedArticlesContainer.classList.add('active');
-        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
+        activateContainer(highLikedArticlesContainer);
         displayHighLikedArticles();
     });
 
     showExtractFansCountButton.addEventListener('click', function() {
-        resultContainer.classList.remove('active');
-        allArticlesContainer.classList.remove('active');
-        highLikedArticlesContainer.classList.remove('active');
-        extractFansCountContainer.classList.add('active'); // Show extractFansCountContainer
-        extractFansCountContainer.style.display = 'block'; // Ensure it's displayed
+        activateContainer(extractFansCountContainer);
         displayExtractFansCount();
     });
 
     if (highLikesLowFansButton) {
         highLikesLowFansButton.addEventListener('click', function() {
-            resultContainer.classList.remove('active');
-            allArticlesContainer.classList.remove('active');
-            highLikedArticlesContainer.classList.remove('active');
-            extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
-            highLikesLowFansArticlesContainer.classList.add('active'); // Show the high likes low fans container
+            activateContainer(highLikesLowFansArticlesContainer);
             displayHighLikesLowFansArticles(); // Call the function to display high liked articles
         });
     }
 
     if (historicalResultButton) {
         historicalResultButton.addEventListener('click', function() {
-            // Hide all other containers
-            resultContainer.classList.remove('active');
-            allArticlesContainer.classList.remove('active');
-            highLikedArticlesContainer.classList.remove('active');
-            extractFansCountContainer.classList.remove('active');
-            highLikesLowFansArticlesContainer.classList.remove('active');
-
             // Show the historical results container
             const historicalResultsContainer = document.getElementById('historicalResultsContainer');
-            historicalResultsContainer.classList.add('active'); // Set active status
+            activateContainer(historicalResultsContainer);
 
             // Fetch and display sorted articles
             chrome.storage.local.get('sortedArticles', function(data) {
@@ -107,6 +78,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+
+    function activateContainer(activeContainer) {
+        // Deactivate all containers
+        [resultContainer, historicalResultsContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
+            container.classList.remove('active');
+            container.style.display = 'none'; // Hide all containers
+        });
+        // Activate the selected container
+        activeContainer.classList.add('active');
+        activeContainer.style.display = 'block'; // Show the active container
     }
 
     function filterHighLikedArticlesAndShowNumbers(articlesData) {
@@ -131,25 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.innerHTML = ''; 
         resultContainer.innerHTML += `<p>Number of high liked articles: ${highLikedCount}</p>`;
         resultContainer.innerHTML += `<p>Total number of articles: ${totalArticlesCount}</p>`;
-    }
-
-    function displayResults(articlesData) {
-        resultContainer.innerHTML = '';
-        allArticlesContainer.innerHTML = '';
-
-        articlesData.forEach(article => {
-            const { author, likes, title, profile, articleLink } = article;
-            const likeCount = likes || 'Not found';
-            const userProfile = profile ? `https://www.xiaohongshu.com${profile}` : 'Not found';
-
-            resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
-            allArticlesContainer.innerHTML += `<p>Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
-        });
-
-        if (articlesData.length === 0) {
-            resultContainer.innerHTML += '<p>No authors found.</p>';
-            allArticlesContainer.innerHTML += '<p>No authors found.</p>';
-        }
     }
 
     function displayHighLikesLowFansArticles() {
@@ -200,24 +163,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function displayArticlesDetails(articleList, container) {
+        container.innerHTML = ''; // Clear previous content
+        articleList.forEach(article => {
+            const { author, likes, title, profile, articleLink, fans } = article;
+            const likeCount = likes || 'Not found'; // Ensure likeCount is defined
+            container.innerHTML += `
+                <div style="border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin: 10px 0; background-color: #fff;">
+                    <h3 style="margin: 0; color: #ff2e4d;">${title}</h3>
+                    <p style="margin: 5px 0;">
+                        <strong>博主:</strong> ${author} | 
+                        <strong>点赞数:</strong> ${likeCount} | 
+                        ${fans ? `<strong>粉丝数:</strong> ${fans} |` : ''} 
+                        <a href="${profile}" target="_blank" style="color: #ff2e4d;">个人主页</a> | 
+                        <a href="${articleLink}" target="_blank" style="color: #ff2e4d;">笔记原文</a>
+                    </p>
+                </div>
+            `;
+        });
+    }
+
     function displayHighLikedArticles() {
         highLikedArticlesContainer.innerHTML = '';
-        let foundArticles = false;
         // Show the total number of high_liked_note in highLikedArticlesContainer.
         const totalHighLikedCount = high_liked_note.length;
         highLikedArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
 
-        high_liked_note.forEach(article => {
-            const { author, likes, title, profile, articleLink } = article;
-            const likeCount = likes || 'Not found'; // Ensure likeCount is defined
+        displayArticlesDetails(high_liked_note, highLikedArticlesContainer);
 
-            if (likeCount > 0) { // Check if there are likes to display
-                foundArticles = true; // Set foundArticles to true if at least one article is found
-                highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${profile}" target="_blank">profile</a>, Article: <a href="${articleLink}" target="_blank">article</a></p>`;
-            }
-        });
-
-        if (!foundArticles) {
+        if (high_liked_note.length === 0) {
             highLikedArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
         }
     }

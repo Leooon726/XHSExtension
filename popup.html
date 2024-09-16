@@ -1,45 +1,113 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Extension</title>
+    <meta charset="UTF-8"> <!-- 指定 UTF-8 编码 -->
+    <title>低粉高赞助手</title>
     <script src="popup.js"></script>
     <style>
+        body {
+            width: 600px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 15px; /* Reduced padding for a tighter layout */
+        }
+
         #resultContainer {
             max-height: 400px;
             overflow-y: auto;
             white-space: pre-wrap;
             word-wrap: break-word;
+            padding: 8px; /* Reduced padding for a tighter layout */
+            border-radius: 8px;
         }
-        .tab {
-            display: none;
+
+        button {
+            padding: 8px 12px; /* Reduced padding for a tighter layout */
+            border: none;
+            border-radius: 8px;
+            background-color: #ff2e4d;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 3px; /* Reduced margin for a tighter layout */
         }
-        .tab.active {
-            display: block;
+
+        button:hover {
+            background-color: #e0243a;
+        }
+
+        input[type="number"] {
+            padding: 8px; /* Reduced padding for a tighter layout */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 8px; /* Reduced margin for a tighter layout */
+        }
+
+        input[type="number"]:focus {
+            border-color: #ff2e4d;
+            outline: none;
+        }
+
+        #progress {
+            height: 8px; /* Reduced height for a tighter layout */
+            background-color: #4caf50;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            margin-top: 8px; /* Reduced margin for a tighter layout */
+        }
+
+        .input-row label {
+            margin-right: 8px; /* Reduced margin for a tighter layout */
+            flex: 0 0 auto; /* Prevent label from growing */
+        }
+
+        .input-row input {
+            flex: 1; /* Allow input to grow */
+        }
+
+        /* Styles for release mode */
+        .release-mode #debugElements {
+            display: none; /* Hide debug elements in release mode */
         }
     </style>
 </head>
 <body>
-    <h1>Get Current Tab Content</h1>
-    <button id="getContentButton">Get Content</button>
-    <button id="showAllArticlesButton">Show All Articles</button>
-    <button id="showHighLikedArticlesButton">Show High Liked Articles</button>
-    <button id="showExtractFansCountButton">Extract Fans Count</button>
-    <button id="highlikeslowfans">Show High Likes, Low Fans</button>
-    <button id="historicalResultButton">Show Historical Results</button>
-    <label for="maxFansInput">Max Fans:</label>
-    <input type="number" id="maxFansInput" placeholder="Enter max fans" min="0" value="1000" />
-    <label for="likeThresholdInput">Min Likes:</label>
-    <input type="number" id="likeThresholdInput" placeholder="Enter like threshold" min="0" value="10000" />
-    <!-- Add this HTML for the progress bar -->
-    <div class="progress-bar" style="width: 100%; background-color: #f0f0f0; height: 20px; margin-bottom: 10px;">
+    <h1>低粉高赞助手</h1>
+    <button id="getContentButton">手动获取</button>
+    <button id="showHighLikedArticlesButton">高赞笔记</button>
+    <button id="highlikeslowfans">低粉高赞笔记</button>
+    <button id="historicalResultButton">历史结果</button>
+    <div class="input-row">
+        <label for="maxFansInput">最大粉丝数</label>
+        <input type="number" id="maxFansInput" placeholder="输入最大粉丝数" min="0" value="1000" />
+        <label for="likeThresholdInput">最小点赞数</label>
+        <input type="number" id="likeThresholdInput" placeholder="输入点赞阈值" min="0" value="10000" />
+    </div>
+    <div class="progress-bar" style="width: 100%; background-color: #f0f0f0; height: 15px; margin-bottom: 8px;"> <!-- Reduced height for a tighter layout -->
         <div id="progress" class="progress" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
     </div>
-    <button id="scrollDownButton">Scroll Down</button>
-    <button id="automateButton">Automate</button>
-    <input type="number" id="scrollTimesInput" placeholder="Enter scroll times" min="1" value="10" />
+    <div class="input-row">
+        <button id="automateButton">自动获取</button>
+        <label for="scrollTimesInput">翻页次数</label>
+        <input type="number" id="scrollTimesInput" placeholder="输入滚动次数" min="1" value="10" />
+    </div>
+
+    <!-- <div id="debugElements" style="display: none;"> -->
+    <div id="debugElements">
+    <button id="scrollDownButton">向下滚动</button>
+    <button id="showExtractFansCountButton">提取粉丝数</button>
+    </div>
+
     <div id="tabs">
         <div id="resultContainer" class="tab active"></div>
-        <div id="all_articles" class="tab"></div>
         <div id="high_liked_articles" class="tab"></div>
         <div id="user_profile" class="tab"></div>
         <div id="extract_fans_count" class="tab"></div>
