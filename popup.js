@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('getContentButton');
-    const downloadButton = document.createElement('button');
-    downloadButton.textContent = 'Download Content';
-    document.body.appendChild(downloadButton);
-    
-    let resultContainer = document.getElementById('resultContainer');
+    const showAllArticlesButton = document.getElementById('showAllArticlesButton');
+    const resultContainer = document.getElementById('resultContainer');
+    const allArticlesContainer = document.getElementById('all_articles');
 
     // Create resultContainer if it doesn't exist
     if (!resultContainer) {
@@ -18,8 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
                 const activeTab = tabs[0];
                 if (activeTab) {
-                    // Send a message to the background script to execute the content script
                     chrome.runtime.sendMessage({ tabId: activeTab.id });
+                    // Switch to all_articles tab after sending the message
+                    resultContainer.classList.remove('active');
+                    allArticlesContainer.classList.add('active');
                 }
             });
         });
@@ -30,101 +30,94 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if (request.content) {
             console.log('Full HTML content retrieved');
-
-            // Parse the content to find all author names, titles, likes, user profile links, and article links
             const { authors, likes, titles, userProfiles, articleLinks } = parseContent(request.content);
-
-            // Display parsed results
-            resultContainer.innerHTML = ''; // Clear previous results
-
-            authors.forEach((author, index) => {
-                const likeCount = likes[index] || 'Not found'; // Handle case where likes may not match authors
-                const title = titles[index] || 'Not found'; // Handle case where titles may not match authors
-                const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found'; // Prepend base URL to user profile
-                const articleLink = articleLinks[index] || 'Not found'; // Handle case where article links may not match authors
-                resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
-            });
-
-            if (authors.length === 0) {
-                resultContainer.innerHTML += '<p>No authors found.</p>';
-            }
-
-            // Display original unparsed content
-            const originalContentDiv = document.createElement('div');
-            originalContentDiv.innerHTML = `<h3>Original Content:</h3><pre>${escapeHTML(request.content)}</pre>`;
-            resultContainer.appendChild(originalContentDiv);
+            displayResults(authors, likes, titles, userProfiles, articleLinks);
         }
     });
 
-    downloadButton.addEventListener('click', function() {
-        const contentToSave = resultContainer.innerHTML; // Get the content to save
-        const blob = new Blob([contentToSave], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-
-        chrome.downloads.download({
-            url: url,
-            filename: 'content.html', // You can specify the filename here
-            saveAs: true // Prompt the user to save the file
-        }, function(downloadId) {
-            console.log('Download started with ID:', downloadId);
-        });
+    showAllArticlesButton.addEventListener('click', function() {
+        resultContainer.classList.remove('active');
+        allArticlesContainer.classList.add('active');
     });
 
-    function parseContent(content) {
-        const noteItems = content.split(/class="note-item"/); // Split by note item
-        
-        const authors = [];
-        const likes = [];
-        const titles = [];
-        const userProfiles = [];
-        const articleLinks = []; // New array to store article links
-        
-        noteItems.forEach((note, index) => {
-            console.log(`Parsing Note item ${index}:`, note); // Log the original note item for comparison
-            const authorMatch = /class="name">([^<]+)<\/span>/.exec(note);
-            const likeCountMatch = /class="count" selected-disabled-search="">([\d.]+[^\d<]*)<\/span>/.exec(note);
-            const titleMatch = /class="title"><span[^>]*>([^<]+)<\/span>/.exec(note);
-            const userProfileMatch = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/.exec(note);
-            const articleLinkMatch = /<a data-v-3e97982a="" href="(\/explore\/[^"]+)"/.exec(note); // Match for article link starting with /explore
-            
-            if (authorMatch) {
-                authors.push(authorMatch[1].trim());
-                console.log('Author:', authorMatch[1].trim());
-            }
-            if (likeCountMatch) {
-                let likeCount = likeCountMatch[1].trim();
-                // Check for Chinese characters in the like count
-                if (/[\u4e00-\u9fa5]/.test(likeCount)) {
-                    likeCount = parseFloat(likeCount) * 10000; // Multiply by 10000 if Chinese characters are present
-                }
-                likes.push(likeCount);
-                console.log('Likes:', likeCount);
-            }
-            if (titleMatch) {
-                titles.push(titleMatch[1].trim());
-                console.log('Title:', titleMatch[1].trim());
-            }
-            if (userProfileMatch) {
-                userProfiles.push(userProfileMatch[1].trim());
-                console.log('User Profile:', userProfileMatch[1].trim());
-            }
-            if (articleLinkMatch) { // Check for article link match
-                articleLinks.push(`https://www.xiaohongshu.com${articleLinkMatch[1]}`); // Prepend base URL to article link
-                console.log('Article Link:', `https://www.xiaohongshu.com${articleLinkMatch[1]}`);
-            }
-        });
-        return { authors, likes, titles, userProfiles, articleLinks }; // Return articleLinks as well
-    }
+    function displayResults(authors, likes, titles, userProfiles, articleLinks) {
+        resultContainer.innerHTML = ''; // Clear previous results
+        allArticlesContainer.innerHTML = ''; // Clear previous results in all_articles tab
 
-    function escapeHTML(str) {
-        return str.replace(/[&<>'"]/g, 
-            tag => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                "'": '&#39;',
-                '"': '&quot;'
-            }[tag] || tag)
-        );
+        authors.forEach((author, index) => {
+            const likeCount = likes[index] || 'Not found';
+            const title = titles[index] || 'Not found';
+            const userProfile = userProfiles[index] ? `https://www.xiaohongshu.com${userProfiles[index]}` : 'Not found';
+            const articleLink = articleLinks[index] || 'Not found';
+
+            // Display in resultContainer
+            resultContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
+
+            // Populate all_articles tab
+            allArticlesContainer.innerHTML += `<p>Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
+        });
+
+        if (authors.length === 0) {
+            resultContainer.innerHTML += '<p>No authors found.</p>';
+            allArticlesContainer.innerHTML += '<p>No authors found.</p>';
+        }
     }
 });
+
+function parseContent(content) {
+    const noteItems = content.split(/class="note-item"/); // Split by note item
+        
+    const authors = [];
+    const likes = [];
+    const titles = [];
+    const userProfiles = [];
+    const articleLinks = []; // New array to store article links
+        
+    noteItems.forEach((note, index) => {
+        console.log(`Parsing Note item ${index}:`, note); // Log the original note item for comparison
+        const authorMatch = /class="name">([^<]+)<\/span>/.exec(note);
+        const likeCountMatch = /class="count" selected-disabled-search="">([\d.]+[^\d<]*)<\/span>/.exec(note);
+        const titleMatch = /class="title"><span[^>]*>([^<]+)<\/span>/.exec(note);
+        const userProfileMatch = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/.exec(note);
+        const articleLinkMatch = /<a data-v-3e97982a="" href="(\/explore\/[^"]+)"/.exec(note); // Match for article link starting with /explore
+            
+        if (authorMatch) {
+            authors.push(authorMatch[1].trim());
+            console.log('Author:', authorMatch[1].trim());
+        }
+        if (likeCountMatch) {
+            let likeCount = likeCountMatch[1].trim();
+            // Check for Chinese characters in the like count
+            if (/[\u4e00-\u9fa5]/.test(likeCount)) {
+                likeCount = parseFloat(likeCount) * 10000; // Multiply by 10000 if Chinese characters are present
+            }
+            likes.push(likeCount);
+            console.log('Likes:', likeCount);
+        }
+        if (titleMatch) {
+            titles.push(titleMatch[1].trim());
+            console.log('Title:', titleMatch[1].trim());
+        }
+        if (userProfileMatch) {
+            userProfiles.push(userProfileMatch[1].trim());
+            console.log('User Profile:', userProfileMatch[1].trim());
+        }
+        if (articleLinkMatch) { // Check for article link match
+            articleLinks.push(`https://www.xiaohongshu.com${articleLinkMatch[1]}`); // Prepend base URL to article link
+            console.log('Article Link:', `https://www.xiaohongshu.com${articleLinkMatch[1]}`);
+        }
+    });
+    return { authors, likes, titles, userProfiles, articleLinks }; // Return articleLinks as well
+}
+
+function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
