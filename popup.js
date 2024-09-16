@@ -2,13 +2,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('getContentButton');
     const showAllArticlesButton = document.getElementById('showAllArticlesButton');
     const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
-    const showUserProfileButton = document.getElementById('showUserProfileButton');
     const showExtractFansCountButton = document.getElementById('showExtractFansCountButton');
     const resultContainer = document.getElementById('resultContainer');
     const allArticlesContainer = document.getElementById('all_articles');
     const highLikedArticlesContainer = document.getElementById('high_liked_articles');
     const highLikesLowFansArticlesContainer = document.getElementById('high_likes_low_fans');
-    const userProfileContainer = document.getElementById('user_profile');
     const extractFansCountContainer = document.getElementById('extract_fans_count');
     const highLikesLowFansButton = document.getElementById('highlikeslowfans');
     const maxFansInput = document.getElementById('maxFansInput');
@@ -44,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.add('active');
         highLikedArticlesContainer.classList.remove('active');
-        userProfileContainer.classList.remove('active');
         extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
     });
 
@@ -52,25 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.add('active');
-        userProfileContainer.classList.remove('active');
         extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
         displayHighLikedArticles();
-    });
-
-    showUserProfileButton.addEventListener('click', function() {
-        resultContainer.classList.remove('active');
-        allArticlesContainer.classList.remove('active');
-        highLikedArticlesContainer.classList.remove('active');
-        userProfileContainer.classList.add('active');
-        extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
-        displayUserProfile();
     });
 
     showExtractFansCountButton.addEventListener('click', function() {
         resultContainer.classList.remove('active');
         allArticlesContainer.classList.remove('active');
         highLikedArticlesContainer.classList.remove('active');
-        userProfileContainer.classList.remove('active');
         extractFansCountContainer.classList.add('active'); // Show extractFansCountContainer
         extractFansCountContainer.style.display = 'block'; // Ensure it's displayed
         displayExtractFansCount();
@@ -81,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
             resultContainer.classList.remove('active');
             allArticlesContainer.classList.remove('active');
             highLikedArticlesContainer.classList.remove('active');
-            userProfileContainer.classList.remove('active');
             extractFansCountContainer.style.display = 'none'; // Hide extractFansCountContainer
             highLikesLowFansArticlesContainer.classList.add('active'); // Show the high likes low fans container
             displayHighLikesLowFansArticles(); // Call the function to display high liked articles
@@ -177,33 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!foundArticles) {
             highLikedArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
-        }
-    }
-
-    function displayUserProfile() {
-        userProfileContainer.innerHTML = ''; // Clear previous results
-        if (articlesData.length > 0) {
-            const firstUserProfile = articlesData[0].profile; // Get the first user profile link
-            fetch(`https://www.xiaohongshu.com${firstUserProfile}`)
-                .then(response => response.text())
-                .then(data => {
-                    const fansNearbyContents = extractFansCount(data); // Get all nearby content around "fans"
-                    userProfileContainer.innerHTML = `<h2>User Profile Content</h2>`;
-                    if (fansNearbyContents) {
-                        fansNearbyContents.forEach(content => {
-                            userProfileContainer.innerHTML += `<p>Nearby content around "fans": ${escapeHTML(content)}</p>`;
-                        });
-                    } else {
-                        userProfileContainer.innerHTML += `<p>Fans information is not found.</p>`;
-                    }
-                    userProfileContainer.innerHTML += `<div>${escapeHTML(data)}</div>`;
-                })
-                .catch(error => {
-                    userProfileContainer.innerHTML = '<p>Error fetching user profile content.</p>';
-                    console.error('Error fetching user profile:', error);
-                });
-        } else {
-            userProfileContainer.innerHTML = '<p>No user profiles available.</p>';
         }
     }
 
