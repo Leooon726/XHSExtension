@@ -4,6 +4,10 @@
     "version": "1.0",
     "description": "A simple browser extension to get current tab content.",
     "permissions": ["activeTab", "scripting", "downloads"],
+    "host_permissions": [
+        "https://*/*",
+        "http://*/*"
+    ],
     "action": {
         "default_popup": "popup.html"
     },

@@ -70,36 +70,43 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function parseContent(content) {
-        const authorRegex = /class="name">([^<]+)<\/span>/g; // Regex to capture author names
-        const likeCountRegex = /class="count" selected-disabled-search="">(\d+)<\/span>/g; // Regex to capture like counts
-        const titleRegex = /class="title"><span[^>]*>([^<]+)<\/span>/g; // Regex to capture article titles
-        const userProfileRegex = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/g; // Regex to capture user profile links starting with /user/profile/
-
+        const noteItems = content.split(/class="note-item"/); // Split by note item
+        
         const authors = [];
         const likes = [];
         const titles = [];
         const userProfiles = [];
-
-        let authorMatch;
-        while ((authorMatch = authorRegex.exec(content)) !== null) {
-            authors.push(authorMatch[1].trim());
-        }
-
-        let likeCountMatch;
-        while ((likeCountMatch = likeCountRegex.exec(content)) !== null) {
-            likes.push(likeCountMatch[1].trim());
-        }
-
-        let titleMatch;
-        while ((titleMatch = titleRegex.exec(content)) !== null) {
-            titles.push(titleMatch[1].trim());
-        }
-
-        let userProfileMatch;
-        while ((userProfileMatch = userProfileRegex.exec(content)) !== null) {
-            userProfiles.push(userProfileMatch[1].trim());
-        }
-
+        
+        noteItems.forEach((note, index) => {
+            console.log(`Parsing Note item ${index}:`, note); // Log the original note item for comparison
+            const authorMatch = /class="name">([^<]+)<\/span>/.exec(note);
+            const likeCountMatch = /class="count" selected-disabled-search="">([\d.]+[^\d<]*)<\/span>/.exec(note);
+            const titleMatch = /class="title"><span[^>]*>([^<]+)<\/span>/.exec(note);
+            const userProfileMatch = /<a data-v-3e97982a="" href="(\/user\/profile\/[^"]+)"/.exec(note);
+            
+            if (authorMatch) {
+                authors.push(authorMatch[1].trim());
+                console.log('Author:', authorMatch[1].trim());
+            }
+            if (likeCountMatch) {
+                let likeCount = likeCountMatch[1].trim();
+                // Check for Chinese characters in the like count
+                if (/[\u4e00-\u9fa5]/.test(likeCount)) {
+                    likeCount = parseFloat(likeCount) * 10000; // Multiply by 10000 if Chinese characters are present
+                }
+                likes.push(likeCount);
+                console.log('Likes:', likeCount);
+            }
+            if (titleMatch) {
+                titles.push(titleMatch[1].trim());
+                console.log('Title:', titleMatch[1].trim());
+            }
+            if (userProfileMatch) {
+                userProfiles.push(userProfileMatch[1].trim());
+                console.log('User Profile:', userProfileMatch[1].trim());
+            }
+        });
+        
         return { authors, likes, titles, userProfiles };
     }
 
