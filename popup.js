@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (button) {
         button.addEventListener('click', function() {
+            console.log('Get content button clicked'); // Log when the button is clicked
             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
                 const activeTab = tabs[0];
                 if (activeTab) {
@@ -223,6 +224,58 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         return fansCountMatches.length > 0 ? fansCountMatches : null; // Return all counts or null if none found
+    }
+
+    const scrollDownButton = document.getElementById('scrollDownButton');
+    if (scrollDownButton) {
+        scrollDownButton.addEventListener('click', function() {
+            console.log('Scroll down button clicked'); // Log when the button is clicked
+            chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                const activeTab = tabs[0];
+                if (activeTab) {
+                    chrome.scripting.executeScript({
+                        target: { tabId: activeTab.id },
+                        function: () => {
+                            window.scrollBy({
+                                top: window.innerHeight, // Scroll down by one viewport height
+                                behavior: 'smooth' // Smooth scrolling
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    const automateButton = document.getElementById('automateButton');
+    const scrollTimesInput = document.getElementById('scrollTimesInput');
+
+    if (automateButton) {
+        automateButton.addEventListener('click', function() {
+            console.log('Automate button clicked'); // Log when the button is clicked
+            
+            const scrollTimes = parseInt(scrollTimesInput.value) || 10; // Default to 10 if input is invalid
+
+            const automate = async () => {
+                for (let i = 0; i < scrollTimes; i++) { // Use scrollTimes from input
+                    console.log(`Iteration ${i + 1}`); // Log the current iteration
+                    
+                    // Simulate click on the get content button
+                    button.click();
+                    
+                    // Wait for content to load
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Adjust the timeout as needed
+                    
+                    // Simulate click on the scroll down button
+                    scrollDownButton.click();
+                    
+                    // Wait for scrolling to complete
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Adjust the timeout as needed
+                }
+            };
+
+            automate();
+        });
     }
 });
 
