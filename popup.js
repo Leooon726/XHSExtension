@@ -32,7 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (request.content) {
             console.log('Full HTML content retrieved');
             articlesData = parseContent(request.content);
-            displayResults(articlesData);
+            filterHighLikedArticlesAndShowNumbers(articlesData);
+            // displayResults(articlesData);
         }
     });
 
@@ -72,6 +73,29 @@ document.addEventListener('DOMContentLoaded', function() {
         displayExtractFansCount();
     });
 
+    function filterHighLikedArticlesAndShowNumbers(articlesData) {
+        const likeThreshold = 10000;
+
+        articlesData.forEach(article => {
+            const { likes } = article;
+            const likeCount = likes || 0;
+            if (likeCount > likeThreshold) {
+                high_liked_note.push(article);
+            }
+        });
+
+        // Display the number of high liked notes and total articles
+        const highLikedCount = high_liked_note.length;
+        const totalArticlesCount = articlesData.length;
+
+        // Reset the resultContainer before appending new content
+        resultContainer.innerHTML = ''; 
+        resultContainer.innerHTML += `<p>Number of high liked articles: ${highLikedCount}</p>`;
+        resultContainer.innerHTML += `<p>Total number of articles: ${totalArticlesCount}</p>`;
+        console.log('High liked notes Length:', high_liked_note.length);
+        console.log('articlesData Length:', articlesData.length);
+    }
+
     function displayResults(articlesData) {
         resultContainer.innerHTML = '';
         allArticlesContainer.innerHTML = '';
@@ -93,37 +117,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayHighLikedArticles() {
         highLikedArticlesContainer.innerHTML = '';
-        const likeThreshold = 10000;
         let foundArticles = false;
 
-        articlesData.forEach(article => {
+        // Show the total number of high_liked_note in highLikedArticlesContainer.
+        const totalHighLikedCount = high_liked_note.length;
+        highLikedArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
+
+        high_liked_note.forEach(article => {
             const { author, likes, title, profile, articleLink } = article;
-            console.log(article);
-            const likeCount = likes || 0;
-            if (likeCount > likeThreshold) {
-                foundArticles = true;
-                const userProfile = profile ? `https://www.xiaohongshu.com${profile}` : 'Not found';
+            const likeCount = likes || 'Not found'; // Ensure likeCount is defined
 
-                // Store the filtered result in the high_liked_note list
-                high_liked_note.push({
-                    title: title,
-                    author: author,
-                    likes: likeCount,
-                    profile: userProfile,
-                    article: articleLink
-                });
-
-                highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${userProfile}" target="_blank">${userProfile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
+            if (likeCount > 0) { // Check if there are likes to display
+                foundArticles = true; // Set foundArticles to true if at least one article is found
+                highLikedArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Profile: <a href="${profile}" target="_blank">${profile}</a>, Article: <a href="${articleLink}" target="_blank">${articleLink}</a></p>`;
             }
-        });
-
-        // Store high_liked_note into storage
-        chrome.storage.local.set({ high_liked_note: high_liked_note }, function() {
-            console.log('High liked notes. Length:', high_liked_note.length);
-            // Print the stored data
-            chrome.storage.local.get('high_liked_note', function(data) {
-                console.log('Stored high liked notes:', data.high_liked_note);
-            });
         });
 
         if (!foundArticles) {
@@ -163,8 +170,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (high_liked_note.length > 0) {
             high_liked_note.forEach((note, index) => {
-                const { title, author, likes, profile, article } = note; // Destructure the note object
-
+                const { title, author, likes, profile, articleLink } = note; // Destructure the note object
+                console.log('article', articleLink);
                 // Fetch the user profile to get the fans count every 10 seconds
                 setTimeout(() => {
                     fetch(profile)
@@ -181,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Author: ${author}</h3>
                                     <p>Article Title: ${title}</p>
                                     <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
-                                    <p>Article Link: <a href="${article}" target="_blank">${article}</a></p>
+                                    <p>Article Link: <a href="${articleLink}" target="_blank">article</a></p>
                                     <p>Likes: ${likes}</p>
                                     <p>Fans: ${note.fans}</p>
                                 </div>
@@ -236,7 +243,7 @@ function parseContent(content) {
                 return likeCount;
             })() : 'Not found',
             title: titleMatch ? titleMatch[1].trim() : 'Not found',
-            profile: userProfileMatch ? userProfileMatch[1].trim() : null,
+            profile: userProfileMatch ? `https://www.xiaohongshu.com${userProfileMatch[1].trim()}` : null,
             articleLink: articleLinkMatch ? `https://www.xiaohongshu.com${articleLinkMatch[1]}` : 'Not found'
         };
 
