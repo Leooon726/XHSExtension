@@ -44,7 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     showExtractFansCountButton.addEventListener('click', function() {
         activateContainer(extractFansCountContainer);
-        displayExtractFansCount();
+        displayExtractFansCount().then(() => {
+            console.log('Fans Extraction completed');
+        });
     });
 
     if (highLikesLowFansButton) {
@@ -82,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function activateContainer(activeContainer) {
         // Deactivate all containers
-        [resultContainer, historicalResultsContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
+        [resultContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
             container.classList.remove('active');
             container.style.display = 'none'; // Hide all containers
         });
@@ -197,49 +199,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayExtractFansCount() {
-        extractFansCountContainer.innerHTML = ''; // Clear previous results
-        const progressBar = document.getElementById('progress'); // Get the progress bar element
-        const totalNotes = high_liked_note.length; // Total number of notes
+        return new Promise((resolve) => {
+            extractFansCountContainer.innerHTML = ''; // Clear previous results
+            const progressBar = document.getElementById('progress'); // Get the progress bar element
+            const totalNotes = high_liked_note.length; // Total number of notes
 
-        if (totalNotes > 0) {
-            high_liked_note.forEach((note, index) => {
-                const { title, author, likes, profile, articleLink } = note; // Destructure the note object
-                console.log('article', articleLink);
-                // Fetch the user profile to get the fans count every 10 seconds
-                setTimeout(() => {
-                    fetch(profile)
-                        .then(response => response.text())
-                        .then(data => {
-                            const fansCount = extractFansCount(data); // Extract fans count from the profile data
+            if (totalNotes > 0) {
+                high_liked_note.forEach((note, index) => {
+                    const { title, author, likes, profile, articleLink } = note; // Destructure the note object
+                    // Fetch the user profile to get the fans count every 10 seconds
+                    setTimeout(() => {
+                        fetch(profile)
+                            .then(response => response.text())
+                            .then(data => {
+                                const fansCount = extractFansCount(data); // Extract fans count from the profile data
 
-                            // Update high_liked_note with the extracted fans count
-                            note.fans = fansCount ? fansCount.join(', ') : 'Not found';
+                                // Update high_liked_note with the extracted fans count
+                                note.fans = fansCount ? fansCount.join(', ') : 'Not found';
 
-                            // Update progress bar
-                            const progressPercentage = ((index + 1) / totalNotes) * 100; // Calculate progress percentage
-                            progressBar.style.width = progressPercentage + '%'; // Update progress bar width
+                                // Update progress bar
+                                const progressPercentage = ((index + 1) / totalNotes) * 100; // Calculate progress percentage
+                                progressBar.style.width = progressPercentage + '%'; // Update progress bar width
 
-                            // Display the information for each user profile
-                            extractFansCountContainer.innerHTML += `
-                                <div>
-                                    <h3>Author: ${author}</h3>
-                                    <p>Article Title: ${title}</p>
-                                    <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
-                                    <p>Article Link: <a href="${articleLink}" target="_blank">article</a></p>
-                                    <p>Likes: ${likes}</p>
-                                    <p>Fans: ${note.fans}</p>
-                                </div>
-                                <hr>
-                            `;
-                        })
-                        .catch(error => {
-                            console.error('Error fetching user profile for fans count:', error);
-                        });
-                }, index * 10000); // Delay each fetch by 10 seconds multiplied by the index
-            });
-        } else {
-            extractFansCountContainer.innerHTML = '<p>No user profiles available.</p>';
-        }
+                                // Display the information for each user profile
+                                extractFansCountContainer.innerHTML += `
+                                    <div>
+                                        <h3>Author: ${author}</h3>
+                                        <p>Article Title: ${title}</p>
+                                        <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
+                                        <p>Article Link: <a href="${articleLink}" target="_blank">article</a></p>
+                                        <p>Likes: ${likes}</p>
+                                        <p>Fans: ${note.fans}</p>
+                                    </div>
+                                    <hr>
+                                `;
+
+                                // Resolve the promise when all notes have been processed
+                                if (index === totalNotes - 1) {
+                                    resolve();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching user profile for fans count:', error);
+                                // Resolve even on error to continue the process
+                                if (index === totalNotes - 1) {
+                                    resolve();
+                                }
+                            });
+                    }, index * 10000); // Delay each fetch by 10 seconds multiplied by the index
+                });
+            } else {
+                extractFansCountContainer.innerHTML = '<p>No user profiles available.</p>';
+                resolve(); // Resolve if no profiles are available
+            }
+        });
     }
 
     function extractFansCount(content) {
@@ -290,6 +303,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 automateButton.textContent = 'Automate'; // Change button text back
                 isAutomating = false; // Update the flag
                 console.log('Automation stopped'); // Log when automation is stopped
+
+                console.log('Run displayExtractFansCount');
+                activateContainer(extractFansCountContainer);
+                displayExtractFansCount().then(() => {
+                    console.log('Fans Extraction completed in automation');
+                    highLikesLowFansButton.click();
+                    console.log('Run highLikesLowFansButton completed');
+                });
             } else {
                 // Start automation
                 console.log('Automate button clicked'); // Log when the button is clicked
@@ -308,6 +329,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         clearInterval(automateInterval); // Stop the interval when done
                         automateButton.textContent = 'Automate'; // Change button text back
                         isAutomating = false; // Update the flag
+
+                        console.log('Run displayExtractFansCount');
+                        activateContainer(extractFansCountContainer);
+                        displayExtractFansCount().then(() => {
+                            console.log('Fans Extraction completed in automation');
+                            highLikesLowFansButton.click();
+                            console.log('Run highLikesLowFansButton completed');
+                        });
                     }
                 }, 4000); // Set interval to 4 seconds (2 seconds for loading + 2 seconds for scrolling)
 
