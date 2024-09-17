@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const highLikesLowFansArticlesContainer = document.getElementById('high_likes_low_fans');
     const extractFansCountContainer = document.getElementById('extract_fans_count');
     const highLikesLowFansButton = document.getElementById('highlikeslowfans');
-    const maxFansInput = document.getElementById('maxFansInput');
     const likeThresholdInput = document.getElementById('likeThresholdInput');
     const historicalResultButton = document.getElementById('historicalResultButton');
 
@@ -68,13 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 historicalResultsContainer.innerHTML = ''; // Clear previous results
 
                 if (sortedArticles.length > 0) {
-                    sortedArticles.forEach(article => {
-                        const { author, likes, title, profile, articleLink, fans } = article;
-                        const likeCount = likes || 'Not found'; // Ensure likeCount is defined
-                        historicalResultsContainer.innerHTML += `
-                            <p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>
-                        `;
-                    });
+                    displayArticlesDetails(sortedArticles, historicalResultsContainer);
                 } else {
                     historicalResultsContainer.innerHTML = '<p>No historical results found.</p>';
                 }
@@ -84,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function activateContainer(activeContainer) {
         // Deactivate all containers
-        [resultContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
+        [resultContainer, historicalResultsContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
             container.classList.remove('active');
             container.style.display = 'none'; // Hide all containers
         });
@@ -118,55 +111,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayHighLikesLowFansArticles() {
+        activateContainer(highLikesLowFansArticlesContainer);
         highLikesLowFansArticlesContainer.innerHTML = '';
-        let foundArticles = false;
-
-        // Get the max_fans value from the input
-        const maxFans = parseInt(maxFansInput.value) || Infinity; // Default to Infinity if not a number
-        const likeThreshold = parseInt(likeThresholdInput.value) || 10000; // Get the like threshold
-
-        // Show the total number of high_liked_note in highLikesLowFansArticlesContainer.
-        const totalHighLikedCount = high_liked_note.length;
-        highLikesLowFansArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
-
+        
         // Sort articles based on fans count
         const sortedArticles = high_liked_note.sort((a, b) => (a.fans || 0) - (b.fans || 0));
+        displayArticlesDetails(sortedArticles, highLikesLowFansArticlesContainer);
+        console.log('run displayArticlesDetails');
 
         // Store sorted articles in storage
         chrome.storage.local.set({ sortedArticles: sortedArticles }, function() {
-            console.log('Sorted articles stored in storage');
+            console.log('Sorted articles stored in storage:', sortedArticles);
         });
-
-        sortedArticles.forEach(article => {
-            const { author, likes, title, profile, articleLink, fans } = article;
-            const likeCount = likes || 'Not found'; // Ensure likeCount is defined
-
-            // Filter articles based on max_fans
-            if (likeCount > 0 && (article.fans < maxFans || !article.fans)) { // Check if fans are less than maxFans
-                foundArticles = true; // Set foundArticles to true if at least one article is found
-                highLikesLowFansArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likeCount}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>`;
-            }
-        });
-
-        // Add a separator for articles with fans greater than the threshold
-        highLikesLowFansArticlesContainer.innerHTML += '<hr>'; // Separator line
-
-        sortedArticles.forEach(article => {
-            const { author, likes, title, profile, articleLink, fans } = article;
-
-            // Display articles with fans greater than the threshold
-            if (fans > likeThreshold) {
-                highLikesLowFansArticlesContainer.innerHTML += `<p>Title: ${title}, Author: ${author}, Likes: ${likes || 'Not found'}, Fans: ${fans || 'Not found'}, Profile: <a href="${profile}" target="_blank">Profile</a>, Article Link: <a href="${articleLink}" target="_blank">article</a></p>`;
-            }
-        });
-
-        if (!foundArticles) {
-            highLikesLowFansArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
-        }
     }
 
     function displayArticlesDetails(articleList, container) {
-        container.innerHTML = ''; // Clear previous content
+        console.log('run displayArticlesDetails for container', container);
+        // container.innerHTML = ''; // Clear previous content
         articleList.forEach(article => {
             const { author, likes, title, profile, articleLink, fans } = article;
             const likeCount = likes || 'Not found'; // Ensure likeCount is defined
@@ -187,9 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayHighLikedArticles() {
         highLikedArticlesContainer.innerHTML = '';
-        // Show the total number of high_liked_note in highLikedArticlesContainer.
-        const totalHighLikedCount = high_liked_note.length;
-        highLikedArticlesContainer.innerHTML += `<p>Total number of high liked articles: ${totalHighLikedCount}</p>`;
 
         displayArticlesDetails(high_liked_note, highLikedArticlesContainer);
 
@@ -200,9 +158,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayExtractFansCount() {
         return new Promise((resolve) => {
+            activateContainer(extractFansCountContainer);
             extractFansCountContainer.innerHTML = ''; // Clear previous results
             const progressBar = document.getElementById('progress'); // Get the progress bar element
             const totalNotes = high_liked_note.length; // Total number of notes
+            const articlesToDisplay = []; // Array to hold articles for display
 
             if (totalNotes > 0) {
                 high_liked_note.forEach((note, index) => {
@@ -216,23 +176,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                                 // Update high_liked_note with the extracted fans count
                                 note.fans = fansCount ? fansCount.join(', ') : 'Not found';
+                                articlesToDisplay.unshift(note); // Add the note to the beginning of the array for display
+                                
+                                // Clear the container and display all retrieved articles with the newest on top
+                                extractFansCountContainer.innerHTML = ''; // Clear previous results
+                                displayArticlesDetails(articlesToDisplay, extractFansCountContainer); // Show all articles
 
                                 // Update progress bar
                                 const progressPercentage = ((index + 1) / totalNotes) * 100; // Calculate progress percentage
                                 progressBar.style.width = progressPercentage + '%'; // Update progress bar width
-
-                                // Display the information for each user profile
-                                extractFansCountContainer.innerHTML += `
-                                    <div>
-                                        <h3>Author: ${author}</h3>
-                                        <p>Article Title: ${title}</p>
-                                        <p>User Profile: <a href="${profile}" target="_blank">Profile Link</a></p>
-                                        <p>Article Link: <a href="${articleLink}" target="_blank">article</a></p>
-                                        <p>Likes: ${likes}</p>
-                                        <p>Fans: ${note.fans}</p>
-                                    </div>
-                                    <hr>
-                                `;
 
                                 // Resolve the promise when all notes have been processed
                                 if (index === totalNotes - 1) {
