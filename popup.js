@@ -1,14 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('getContentButton');
-    const showHighLikedArticlesButton = document.getElementById('showHighLikedArticlesButton');
     const showExtractFansCountButton = document.getElementById('showExtractFansCountButton');
     const resultContainer = document.getElementById('resultContainer');
-    const highLikedArticlesContainer = document.getElementById('high_liked_articles');
     const highLikesLowFansArticlesContainer = document.getElementById('high_likes_low_fans');
     const extractFansCountContainer = document.getElementById('extract_fans_count');
     const highLikesLowFansButton = document.getElementById('highlikeslowfans');
     const likeThresholdInput = document.getElementById('likeThresholdInput');
     const historicalResultButton = document.getElementById('historicalResultButton');
+    const toggleDebugElementsButton = document.getElementById('toggleDebugElements');
 
     let articlesData = []; // List of dict to maintain authors, likes, titles, userProfiles, and articleLinks
     let high_liked_note = []; // Declare high_liked_note in a broader scope
@@ -36,15 +35,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    showHighLikedArticlesButton.addEventListener('click', function() {
-        activateContainer(highLikedArticlesContainer);
-        displayHighLikedArticles();
-    });
-
     showExtractFansCountButton.addEventListener('click', function() {
         activateContainer(extractFansCountContainer);
         displayExtractFansCount().then(() => {
             console.log('Fans Extraction completed');
+            highLikesLowFansButton.click();
         });
     });
 
@@ -75,9 +70,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    if (toggleDebugElementsButton) {
+        toggleDebugElementsButton.addEventListener('click', toggleDebugElements);
+    }
+
     function activateContainer(activeContainer) {
         // Deactivate all containers
-        [resultContainer, historicalResultsContainer, highLikedArticlesContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
+        [historicalResultsContainer, extractFansCountContainer, highLikesLowFansArticlesContainer].forEach(container => {
             container.classList.remove('active');
             container.style.display = 'none'; // Hide all containers
         });
@@ -100,14 +99,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Display the number of high liked notes and total articles
+        // Display the number of high liked notes
         const highLikedCount = high_liked_note.length;
-        const totalArticlesCount = articlesData.length;
 
         // Reset the resultContainer before appending new content
         resultContainer.innerHTML = ''; 
-        resultContainer.innerHTML += `<p>Number of high liked articles: ${highLikedCount}</p>`;
-        resultContainer.innerHTML += `<p>Total number of articles: ${totalArticlesCount}</p>`;
+        // Update the span with the pure number
+        resultContainer.textContent = highLikedCount; // Use textContent for safe text insertion
     }
 
     function displayHighLikesLowFansArticles() {
@@ -144,16 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         });
-    }
-
-    function displayHighLikedArticles() {
-        highLikedArticlesContainer.innerHTML = '';
-
-        displayArticlesDetails(high_liked_note, highLikedArticlesContainer);
-
-        if (high_liked_note.length === 0) {
-            highLikedArticlesContainer.innerHTML = '<p>No high liked articles found.</p>';
-        }
     }
 
     function displayExtractFansCount() {
@@ -252,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isAutomating) {
                 // Stop automation
                 clearInterval(automateInterval);
-                automateButton.textContent = 'Automate'; // Change button text back
+                automateButton.textContent = '自动采集'; // Change button text back
                 isAutomating = false; // Update the flag
                 console.log('Automation stopped'); // Log when automation is stopped
 
@@ -279,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         currentIteration++; // Increment the iteration count
                     } else {
                         clearInterval(automateInterval); // Stop the interval when done
-                        automateButton.textContent = 'Automate'; // Change button text back
+                        automateButton.textContent = '自动采集'; // Change button text back
                         isAutomating = false; // Update the flag
 
                         console.log('Run displayExtractFansCount');
@@ -292,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 4000); // Set interval to 4 seconds (2 seconds for loading + 2 seconds for scrolling)
 
-                automateButton.textContent = 'Stop'; // Change button text to "Stop"
+                automateButton.textContent = '停止获取'; // Change button text to "Stop"
                 isAutomating = true; // Update the flag
             }
         });

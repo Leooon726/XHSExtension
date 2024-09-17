@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8"> <!-- 指定 UTF-8 编码 -->
     <title>低粉高赞助手</title>
+    <script src="toggleDebug.js"></script>
     <script src="popup.js"></script>
     <style>
         body {
@@ -12,6 +13,14 @@
             color: #333;
             margin: 0;
             padding: 15px; /* Reduced padding for a tighter layout */
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column; /* Stack elements vertically */
+        }
+
+        #header {
+            display: flex; /* Use flexbox for header layout */
+            align-items: center; /* Center items vertically */
+            justify-content: space-between; /* Space between header items */
         }
 
         #resultContainer {
@@ -21,6 +30,16 @@
             word-wrap: break-word;
             padding: 8px; /* Reduced padding for a tighter layout */
             border-radius: 8px;
+            margin-left: 20px; /* Add margin to separate from the header */
+            position: absolute; /* Positioning to place it in the top right corner */
+            top: 15px; /* Distance from the top */
+            right: 15px; /* Distance from the right */
+            font-size: 32px; /* Increased font size for bolder appearance */
+            font-weight: bold; /* Make the number bold */
+            color: red; /* Red color for the number */
+            margin-top: -10px; /* Added margin to separate from the label */
+            width: 100px; /* Fixed width for alignment */
+            text-align: right; /* Align text to the right */
         }
 
         button {
@@ -80,34 +99,37 @@
     </style>
 </head>
 <body>
-    <h1>低粉高赞助手</h1>
-    <div class="input-row">
-        <button id="automateButton">自动获取</button>
-        <label for="scrollTimesInput">翻页次数</label>
-        <input type="number" id="scrollTimesInput" placeholder="输入滚动次数" min="1" value="10" />
+    <div id="header">
+        <h1>低粉高赞助手</h1>
+        <label for="resultContainer" style="margin-top: 20px;">已采集高赞笔记数</label>
+        <span id="resultContainer" data-default-value="0" style="margin-top: -10px;">0</span> <!-- Changed to span for displaying just a number -->
     </div>
     <div class="input-row">
+        <button id="automateButton">自动采集</button>
+        <label for="scrollTimesInput">翻页次数</label>
+        <input type="number" id="scrollTimesInput" placeholder="输入滚动次数" min="1" value="10" />
         <label for="likeThresholdInput">最少点赞数</label>
         <input type="number" id="likeThresholdInput" placeholder="输入点赞阈值" min="0" value="10000" />
     </div>
-    <button id="getContentButton">手动获取</button>
-    <button id="showHighLikedArticlesButton">高赞笔记</button>
-    <button id="highlikeslowfans">低粉高赞笔记</button>
-    <button id="historicalResultButton">历史结果</button>
+    <div class="input-row">
+        <!-- <button id="showHighLikedArticlesButton">高赞笔记</button> -->
+        <button id="highlikeslowfans">低粉高赞笔记</button>
+        <button id="historicalResultButton">历史结果</button>
+        <button id="toggleDebugElements">更多操作</button>
+    </div>
     <div class="progress-bar" style="width: 100%; background-color: #f0f0f0; height: 15px; margin-bottom: 8px;"> <!-- Reduced height for a tighter layout -->
         <div id="progress" class="progress" style="width: 0%; height: 100%; background-color: #4caf50;"></div>
     </div>
 
-    <!-- <div id="debugElements" style="display: none;"> -->
-    <div id="debugElements">
-    <button id="scrollDownButton">向下滚动</button>
-    <button id="showExtractFansCountButton">提取粉丝数</button>
+    <div>
+        <div id="debugElements" style="display: none;">
+            <button id="getContentButton">手动采集</button>
+            <button id="scrollDownButton">向下滚动</button>
+            <button id="showExtractFansCountButton">提取粉丝数</button>
+        </div>
     </div>
 
     <div id="tabs">
-        <div id="resultContainer" class="tab active"></div>
-        <div id="high_liked_articles" class="tab"></div>
-        <div id="user_profile" class="tab"></div>
         <div id="extract_fans_count" class="tab"></div>
         <div id="high_likes_low_fans" class="tab"></div>
         <div id="historicalResultsContainer" class="tab"></div>
